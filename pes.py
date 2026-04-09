@@ -3,7 +3,7 @@ from tkinter import messagebox
 import requests
 import urllib3
 
-# Suppress insecure request warnings (common with college captive portals)
+# Suppress insecure request warnings 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class WiFiAutoLogin:
@@ -59,7 +59,7 @@ class WiFiAutoLogin:
         self.status_label.config(text="Connecting...", fg="orange")
         self.root.update()
 
-        # Payload standard for Cyberoam captive portals
+        
         data = {
             "mode": "191", # 191 is the login code
             "username": srn,
@@ -83,7 +83,6 @@ class WiFiAutoLogin:
             print("-" * 40)
             # -------------------------------------------
             
-            # The Real Test: Can we reach Google's DNS?
             try:
                 requests.get("https://8.8.8.8", timeout=3, verify=False)
                 
