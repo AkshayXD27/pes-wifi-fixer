@@ -10,7 +10,7 @@ class WiFiAutoLogin:
     def __init__(self, root):
         self.root = root
         self.root.title("College WiFi Auto-Login")
-        self.root.geometry("300x250")
+        self.root.geometry("300x300") # Slightly taller to fit the new button
         self.root.resizable(False, False)
 
         # Setup a session to disguise as a browser
@@ -48,6 +48,35 @@ class WiFiAutoLogin:
         self.connect_btn = tk.Button(self.root, text="Connect", command=self.login, width=15)
         self.connect_btn.pack(pady=5)
 
+        # Force Logout Button (for ghost sessions)
+        self.force_out_btn = tk.Button(self.root, text="Force Logout / Clear Session", command=self.force_clear_session, width=25)
+        self.force_out_btn.pack(pady=5)
+
+    def force_clear_session(self):
+        # This function kills stuck ghost sessions on the server
+        srn = self.srn_entry.get().strip()
+        
+        if not srn:
+            messagebox.showwarning("Input Error", "Please enter your SRN to clear the session.")
+            return
+
+        self.status_label.config(text="Clearing ghost session...", fg="orange")
+        self.root.update()
+
+        data = {
+            "mode": "193", # 193 is the logout code
+            "username": srn,
+            "producttype": "0"
+        }
+        
+        try:
+            # Blindly send the logout request to clear any stuck sessions
+            self.session.post(self.auth_url, data=data, verify=False, timeout=5)
+            self.status_label.config(text="Session cleared! Try connecting.", fg="blue")
+        except requests.exceptions.RequestException as e:
+            self.status_label.config(text="Network Error", fg="red")
+            messagebox.showerror("Error", f"Could not reach the server to log out.\n{e}")
+
     def login(self):
         srn = self.srn_entry.get().strip()
         password = self.password_entry.get().strip()
@@ -59,7 +88,6 @@ class WiFiAutoLogin:
         self.status_label.config(text="Connecting...", fg="orange")
         self.root.update()
 
-        
         data = {
             "mode": "191", # 191 is the login code
             "username": srn,
@@ -71,7 +99,7 @@ class WiFiAutoLogin:
             # verify=False is necessary for local IP/domain captive portals
             response = self.session.post(self.auth_url, data=data, verify=False, timeout=10)
             
-            # --- DEBUGGING PRINTS (Properly Indented) ---
+            # --- DEBUGGING PRINTS ---
             print("URL Sent:", response.request.url)
             print("\nHEADERS SENT:")
             for key, value in response.request.headers.items():
@@ -81,7 +109,7 @@ class WiFiAutoLogin:
             print("\nSERVER RESPONSE:")
             print(response.text)
             print("-" * 40)
-            # -------------------------------------------
+            # ------------------------
             
             try:
                 requests.get("https://8.8.8.8", timeout=3, verify=False)
@@ -97,8 +125,8 @@ class WiFiAutoLogin:
                 self.status_label.config(text="Status: Device Limit Reached", fg="red")
                 messagebox.showerror(
                     "Login Blocked", 
-                    "You are likely logged in on another device (like your phone). "
-                    "Please disconnect your phone's WiFi or wait for the session to expire."
+                    "You are likely logged in on another device (like your phone) or have a ghost session. "
+                    "Try clicking 'Force Logout', or disconnect your phone's WiFi."
                 )
                 
         except requests.exceptions.RequestException as e:
